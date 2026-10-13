@@ -5,6 +5,8 @@ A polished, responsive calculator web app built with plain HTML, CSS, and JavaSc
 ## Features
 
 - Arithmetic operations for addition, subtraction, multiplication, division, and modulo
+- Optional scientific mode with powers, constants (`π` and `e`), trigonometry, square roots, logarithms, factorials, and reciprocals
+- Trigonometric functions use degrees
 - Decimal input handling with safe result formatting and division-by-zero protection
 - `AC` to clear the current calculation and `DEL` to remove the last input
 - Keyboard shortcuts for numbers, operators, `Enter`, `Backspace`, and `Esc`

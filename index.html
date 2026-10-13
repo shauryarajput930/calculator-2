@@ -108,6 +108,28 @@
       font-weight: 600;
     }
 
+    .topbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .mode-toggle {
+      border: 1px solid rgba(141, 113, 255, 0.35);
+      border-radius: 10px;
+      padding: 8px 10px;
+      cursor: pointer;
+      color: #eae5ff;
+      font-size: 0.72rem;
+      font-weight: 700;
+      background: rgba(141, 113, 255, 0.2);
+    }
+
+    .mode-toggle:hover,
+    .mode-toggle[aria-pressed="true"] { background: rgba(141, 113, 255, 0.38); }
+
+    .mode-toggle:focus-visible { outline: 2px solid #c7bcff; outline-offset: 2px; }
+
     .display {
       min-height: 157px;
       display: flex;
@@ -303,7 +325,10 @@
             <h1 id="calculator-title">Nova</h1>
           </div>
         </div>
-        <span class="keyboard-hint">Keyboard enabled</span>
+        <div class="topbar-actions">
+          <button class="mode-toggle" id="mode-toggle" type="button" aria-pressed="false">Scientific</button>
+          <span class="keyboard-hint">Keyboard enabled</span>
+        </div>
       </header>
 
       <div class="display" aria-live="polite" aria-atomic="true">
@@ -312,6 +337,18 @@
       </div>
 
       <div class="keypad" aria-label="Calculator keys">
+        <button class="key operator scientific-key" type="button" data-function="sin" aria-label="Sine in degrees" hidden>sin</button>
+        <button class="key operator scientific-key" type="button" data-function="cos" aria-label="Cosine in degrees" hidden>cos</button>
+        <button class="key operator scientific-key" type="button" data-function="tan" aria-label="Tangent in degrees" hidden>tan</button>
+        <button class="key operator scientific-key" type="button" data-function="sqrt" aria-label="Square root" hidden>√</button>
+        <button class="key operator scientific-key" type="button" data-function="square" aria-label="Square" hidden>x²</button>
+        <button class="key operator scientific-key" type="button" data-function="ln" aria-label="Natural logarithm" hidden>ln</button>
+        <button class="key operator scientific-key" type="button" data-function="log" aria-label="Base 10 logarithm" hidden>log</button>
+        <button class="key operator scientific-key" type="button" data-function="factorial" aria-label="Factorial" hidden>n!</button>
+        <button class="key operator scientific-key" type="button" data-function="reciprocal" aria-label="Reciprocal" hidden>1/x</button>
+        <button class="key operator scientific-key" type="button" data-constant="pi" aria-label="Pi" hidden>π</button>
+        <button class="key operator scientific-key" type="button" data-constant="e" aria-label="Euler's number" hidden>e</button>
+        <button class="key operator scientific-key" type="button" data-operator="^" aria-label="Raise to a power" hidden>xʸ</button>
         <button class="key utility" type="button" data-action="clear" aria-label="Clear all">AC</button>
         <button class="key utility" type="button" data-action="delete" aria-label="Delete last digit">DEL</button>
         <button class="key operator" type="button" data-operator="%" aria-label="Modulo">%</button>
@@ -349,11 +386,13 @@
   </main>
 
   <script>
-    const symbols = { "+": "+", "-": "−", "*": "×", "/": "÷", "%": "%" };
+    const symbols = { "+": "+", "-": "−", "*": "×", "/": "÷", "%": "%", "^": "^" };
     const resultDisplay = document.getElementById("result-display");
     const expressionDisplay = document.getElementById("expression-display");
     const historyList = document.getElementById("history-list");
     const clearHistoryButton = document.getElementById("clear-history");
+    const modeToggle = document.getElementById("mode-toggle");
+    const scientificKeys = document.querySelectorAll(".scientific-key");
     const storageKey = "nova-calculator-history";
 
     const state = {
@@ -460,6 +499,7 @@
         case "*": answer = first * second; break;
         case "/": answer = second === 0 ? null : first / second; break;
         case "%": answer = second === 0 ? null : first % second; break;
+        case "^": answer = first ** second; break;
       }
 
       const equation = `${formatValue(state.previous)} ${symbols[state.operator]} ${formatValue(state.current)}`;
@@ -489,6 +529,88 @@
       state.overwrite = true;
       updateDisplay();
     }
+
+    function applyScientificFunction(operation) {
+      resetError();
+      const value = Number(state.current);
+      let answer;
+      let equation;
+
+      switch (operation) {
+        case "sin":
+          answer = Math.sin(value * Math.PI / 180);
+          if (Math.abs(answer) < 1e-12) answer = 0;
+          equation = `sin(${formatValue(state.current)}°)`;
+          break;
+        case "cos":
+          answer = Math.cos(value * Math.PI / 180);
+          if (Math.abs(answer) < 1e-12) answer = 0;
+          equation = `cos(${formatValue(state.current)}°)`;
+          break;
+        case "tan":
+          const normalizedAngle = ((value % 180) + 180) % 180;
+          answer = Math.abs(normalizedAngle - 90) < 1e-12
+            ? null
+            : Math.tan(value * Math.PI / 180);
+          if (answer !== null && Math.abs(answer) < 1e-12) answer = 0;
+          equation = `tan(${formatValue(state.current)}°)`;
+          break;
+        case "sqrt":
+          answer = value < 0 ? null : Math.sqrt(value);
+          equation = `√(${formatValue(state.current)})`;
+          break;
+        case "square":
+          answer = value ** 2;
+          equation = `(${formatValue(state.current)})²`;
+          break;
+        case "ln":
+          answer = value <= 0 ? null : Math.log(value);
+          equation = `ln(${formatValue(state.current)})`;
+          break;
+        case "log":
+          answer = value <= 0 ? null : Math.log10(value);
+          equation = `log(${formatValue(state.current)})`;
+          break;
+        case "factorial":
+          if (!Number.isInteger(value) || value < 0 || value > 170) {
+            answer = null;
+          } else {
+            answer = 1;
+            for (let factor = 2; factor <= value; factor += 1) answer *= factor;
+          }
+          equation = `${formatValue(state.current)}!`;
+          break;
+        case "reciprocal":
+          answer = value === 0 ? null : 1 / value;
+          equation = `1 / ${formatValue(state.current)}`;
+          break;
+      }
+
+      if (answer === null || !Number.isFinite(answer)) {
+        state.current = "Error";
+        state.previous = null;
+        state.operator = null;
+        state.overwrite = true;
+        state.error = true;
+        updateDisplay();
+        return;
+      }
+
+      state.current = String(Number.parseFloat(answer.toPrecision(12)));
+      state.overwrite = true;
+      state.error = false;
+      addHistory(equation, state.current);
+      updateDisplay();
+    }
+
+    function setScientificMode(enabled) {
+      modeToggle.setAttribute("aria-pressed", String(enabled));
+      scientificKeys.forEach((key) => { key.hidden = !enabled; });
+    }
+
+    modeToggle.addEventListener("click", () => {
+      setScientificMode(modeToggle.getAttribute("aria-pressed") !== "true");
+    });
 
     function addHistory(equation, answer) {
       state.history.unshift({ equation, answer });
@@ -532,6 +654,14 @@
       if (!key) return;
       if (key.dataset.number !== undefined) appendNumber(key.dataset.number);
       if (key.dataset.operator) chooseOperator(key.dataset.operator);
+      if (key.dataset.function) applyScientificFunction(key.dataset.function);
+      if (key.dataset.constant) {
+        const constant = key.dataset.constant === "pi" ? Math.PI : Math.E;
+        state.current = String(Number.parseFloat(constant.toPrecision(12)));
+        state.overwrite = true;
+        state.error = false;
+        updateDisplay();
+      }
       if (key.dataset.action === "clear") clearAll();
       if (key.dataset.action === "delete") deleteLast();
       if (key.dataset.action === "equals") calculate();
@@ -548,7 +678,7 @@
       if (/^\d$/.test(key) || key === ".") {
         event.preventDefault();
         appendNumber(key);
-      } else if (["+", "-", "*", "/", "%"].includes(key)) {
+      } else if (["+", "-", "*", "/", "%", "^"].includes(key)) {
         event.preventDefault();
         chooseOperator(key);
       } else if (key === "Enter" || key === "=") {
